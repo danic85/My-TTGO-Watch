@@ -35,6 +35,7 @@
 
 #include "app/weather/weather.h"
 #include "app/example_app/example_app.h"
+#include "app/alarm/alarm.h"
 
 TTGOClass *ttgo = TTGOClass::getWatch();
 
@@ -76,6 +77,7 @@ void setup()
      */
     weather_app_setup();
     example_app_setup();
+    alarm_setup(ttgo);
     /*
      *
      */
