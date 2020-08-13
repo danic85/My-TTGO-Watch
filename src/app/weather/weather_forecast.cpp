@@ -33,6 +33,8 @@
 #include "gui/statusbar.h"
 #include "gui/keyboard.h"
 
+#include "hardware/powermgm.h"
+
 EventGroupHandle_t weather_forecast_event_handle = NULL;
 TaskHandle_t _weather_forecast_sync_Task;
 void weather_forecast_sync_Task( void * pvParameters );
@@ -88,13 +90,13 @@ void weather_forecast_tile_setup( uint32_t tile_num ) {
     lv_imgbtn_set_src(reload_btn, LV_BTN_STATE_CHECKED_RELEASED, &refresh_32px);
     lv_imgbtn_set_src(reload_btn, LV_BTN_STATE_CHECKED_PRESSED, &refresh_32px);
     lv_obj_add_style(reload_btn, LV_IMGBTN_PART_MAIN, &weather_forecast_style );
-    lv_obj_align(reload_btn, weather_forecast_tile, LV_ALIGN_IN_TOP_RIGHT, -10 , STATUSBAR_HEIGHT + 10 );
+    lv_obj_align(reload_btn, weather_forecast_tile, LV_ALIGN_IN_TOP_RIGHT, -10 , 10 );
     lv_obj_set_event_cb( reload_btn, refresh_weather_widget_event_cb );
 
     weather_forecast_location_label = lv_label_create( weather_forecast_tile , NULL);
     lv_label_set_text( weather_forecast_location_label, "n/a");
     lv_obj_reset_style_list( weather_forecast_location_label, LV_OBJ_PART_MAIN );
-    lv_obj_align( weather_forecast_location_label, weather_forecast_tile, LV_ALIGN_IN_TOP_LEFT, 10, STATUSBAR_HEIGHT + 10 );
+    lv_obj_align( weather_forecast_location_label, weather_forecast_tile, LV_ALIGN_IN_TOP_LEFT, 10, 10 );
 
     weather_forecast_update_label = lv_label_create( weather_forecast_tile , NULL);
     lv_label_set_text( weather_forecast_update_label, "");
@@ -104,7 +106,7 @@ void weather_forecast_tile_setup( uint32_t tile_num ) {
     lv_obj_t * weater_forecast_cont = lv_obj_create( weather_forecast_tile, NULL );
     lv_obj_set_size( weater_forecast_cont, LV_HOR_RES_MAX , 96 );
     lv_obj_add_style( weater_forecast_cont, LV_OBJ_PART_MAIN, &weather_forecast_style  );
-    lv_obj_align( weater_forecast_cont, weather_forecast_tile, LV_ALIGN_CENTER, 0, 10 );
+    lv_obj_align( weater_forecast_cont, weather_forecast_tile, LV_ALIGN_CENTER, 0, 0 );
 
     for ( int i = 0 ; i < WEATHER_MAX_FORECAST / 4 ; i++ ) {
         weather_forecast_icon_imgbtn[ i ] = lv_imgbtn_create( weater_forecast_cont, NULL);
@@ -133,7 +135,9 @@ void weather_forecast_tile_setup( uint32_t tile_num ) {
 
     // regster callback for wifi sync
     WiFi.onEvent( [](WiFiEvent_t event, WiFiEventInfo_t info) {
-        weather_forecast_sync_request();
+        weather_config_t *weather_config = weather_get_config();
+        if ( weather_config->autosync )
+            weather_forecast_sync_request();
     }, WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP );
 
     weather_forecast_event_handle = xEventGroupCreate();
@@ -184,6 +188,8 @@ void weather_forecast_sync_Task( void * pvParameters ) {
 
     log_i("start weather forecast task");
 
+    vTaskDelay( 250 );
+
     if ( xEventGroupGetBits( weather_forecast_event_handle ) & WEATHER_FORECAST_SYNC_REQUEST ) {   
         if ( weather_config->autosync ) {
             retval = weather_fetch_forecast( weather_get_config() , &weather_forecast[ 0 ] );
@@ -224,11 +230,7 @@ void weather_forecast_sync_Task( void * pvParameters ) {
                 localtime_r( &now, &info );
                 strftime( buf, sizeof(buf), "updated: %d.%b %H:%M", &info );
                 lv_label_set_text( weather_forecast_update_label, buf );
-            }
-            else {
-                char buf[64];
-                snprintf( buf, sizeof(buf), "Error: %d", retval );
-                lv_label_set_text( weather_forecast_update_label, buf );
+                lv_obj_invalidate( lv_scr_act() );
             }
         }
     }

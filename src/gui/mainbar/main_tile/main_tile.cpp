@@ -44,7 +44,7 @@ LV_FONT_DECLARE(Ubuntu_16px);
 
 lv_task_t * task;
 void main_tile_task( lv_task_t * task );
-void main_tile_aling_widgets( void );
+void main_tile_align_widgets( void );
 
 void main_tile_setup( void ) {
     main_tile_num = mainbar_add_tile( 0, 0 );
@@ -57,7 +57,7 @@ void main_tile_setup( void ) {
     lv_style_copy( &datestyle, style);
     lv_style_set_text_font( &datestyle, LV_STATE_DEFAULT, &Ubuntu_16px);
 
-    clock_cont = lv_obj_create( main_cont, NULL );
+    clock_cont = mainbar_obj_create( main_cont );
     lv_obj_set_size( clock_cont, LV_HOR_RES , LV_VER_RES / 2 );
     lv_obj_add_style( clock_cont, LV_OBJ_PART_MAIN, style );
     lv_obj_align( clock_cont, main_cont, LV_ALIGN_CENTER, 0, 0 );
@@ -88,7 +88,7 @@ void main_tile_setup( void ) {
     lv_obj_align( datelabel, timelabel, LV_ALIGN_OUT_BOTTOM_MID, 0, 0 );
 
     for ( int widget = 0 ; widget < MAX_WIDGET_NUM ; widget++ ) {
-        widget_entry[ widget ].widget = lv_obj_create( main_cont, NULL );
+        widget_entry[ widget ].widget = mainbar_obj_create( main_cont );
         widget_entry[ widget ].active = false;
         lv_obj_reset_style_list( widget_entry[ widget ].widget, LV_OBJ_PART_MAIN );
         lv_obj_add_style( widget_entry[ widget ].widget, LV_OBJ_PART_MAIN, style );
@@ -104,7 +104,7 @@ lv_obj_t *main_tile_register_widget( void ) {
         if ( widget_entry[ widget ].active == false ) {
             widget_entry[ widget ].active = true;
             lv_obj_set_hidden( widget_entry[ widget ].widget, false );
-            main_tile_aling_widgets();
+            main_tile_align_widgets();
             return( widget_entry[ widget ].widget );
         }
     }
@@ -112,7 +112,7 @@ lv_obj_t *main_tile_register_widget( void ) {
     return( NULL );
 }
 
-void main_tile_aling_widgets( void ) {
+void main_tile_align_widgets( void ) {
     int active_widgets = 0;
     lv_coord_t xpos = 0;
 

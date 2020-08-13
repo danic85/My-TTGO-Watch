@@ -34,7 +34,6 @@
 
 #include "statusbar.h"
 
-#include "hardware/motor.h"
 #include "hardware/powermgm.h"
 #include "hardware/wifictl.h"
 
@@ -50,6 +49,7 @@ lv_status_bar_t statusicon[ STATUSBAR_NUM ] =
     { NULL, NULL, LV_ALIGN_IN_TOP_RIGHT, &statusbarstyle[ STATUSBAR_STYLE_WHITE ] },
     { NULL, LV_SYMBOL_BATTERY_FULL, LV_ALIGN_OUT_LEFT_MID, &statusbarstyle[ STATUSBAR_STYLE_WHITE ] },
     { NULL, LV_SYMBOL_WIFI, LV_ALIGN_OUT_LEFT_MID, &statusbarstyle[ STATUSBAR_STYLE_WHITE ] },
+    { NULL, LV_SYMBOL_BLUETOOTH, LV_ALIGN_OUT_LEFT_MID, &statusbarstyle[ STATUSBAR_STYLE_WHITE ] },
     { NULL, LV_SYMBOL_BELL, LV_ALIGN_OUT_LEFT_MID, &statusbarstyle[ STATUSBAR_STYLE_WHITE ] },
     { NULL, LV_SYMBOL_WARNING, LV_ALIGN_OUT_LEFT_MID, &statusbarstyle[ STATUSBAR_STYLE_WHITE ] },
 };
@@ -179,6 +179,7 @@ void statusbar_setup( void )
     statusbar_hide_icon( STATUSBAR_BELL );
     statusbar_hide_icon( STATUSBAR_WARNING );
     statusbar_hide_icon( STATUSBAR_WIFI );
+    statusbar_style_icon( STATUSBAR_BLUETOOTH, STATUSBAR_STYLE_GRAY );
 }
 
 /*
@@ -193,7 +194,6 @@ void statusbar_wifi_event_cb( lv_obj_t *wifi, lv_event_t event ) {
                                             break;
             default:                        break;
         }
-        motor_vibe( 1 );
     }
 }
 
@@ -207,7 +207,6 @@ void statusbar_bluetooth_event_cb( lv_obj_t *wifi, lv_event_t event ) {
             case( LV_BTN_STATE_PRESSED ):    break;
             default:                        break;
         }
-        motor_vibe( 1 );
     }
 }
 
@@ -361,4 +360,8 @@ void statusbar_update_battery( int32_t percent, bool charging, bool plug ) {
         }
     }
     statusbar_refresh();
+}
+
+void statusbar_hide( bool hide ) {
+    lv_obj_set_hidden( statusbar, hide );
 }
