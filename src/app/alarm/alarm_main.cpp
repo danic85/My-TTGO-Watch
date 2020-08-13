@@ -43,14 +43,11 @@ static void exit_alarm_main_event_cb( lv_obj_t * obj, lv_event_t event );
 static void enter_alarm_setup_event_cb( lv_obj_t * obj, lv_event_t event );
 void alarm_task( lv_task_t * task );
 
-TTGOClass *ttgo;
 bool rtcIrq = false;
 
-void alarm_main_setup( uint32_t tile_num, TTGOClass *ttgo_ref  ) {
+void alarm_main_setup( uint32_t tile_num, TTGOClass *ttgo  ) {
 
     /** ALARM SPECIFIC CODE **/
-    ttgo = ttgo_ref;
-    ttgo->begin();
     ttgo->openBL();
     ttgo->motor_begin();
 
@@ -66,7 +63,14 @@ void alarm_main_setup( uint32_t tile_num, TTGOClass *ttgo_ref  ) {
     // disable alarm
     ttgo->rtc->disableAlarm();
 
-    ttgo->rtc->setAlarmByMinutes(1); // For testing
+    // ttgo->rtc->setAlarm(27, 20, IGNORE, IGNORE); // can only set one currently I believe
+
+    ttgo->rtc->setDateTime(2019, 8, 12, 0, 0, 0);
+
+    ttgo->rtc->setAlarmByMinutes(2); // or setAlarm() https://playground.arduino.cc/Main/RTC-PCF8563/
+    //ttgo->rtc->setAlarmByMinutes(1); // For testing
+
+    log_i("Setting alarm");
 
     //void setAlarm(byte min, byte hour, byte day, byte weekday)
     // ttgo->rtc->setAlarm(0, 7, IGNORE, IGNORE); // can only set one currently I believe
@@ -101,11 +105,11 @@ void alarm_main_setup( uint32_t tile_num, TTGOClass *ttgo_ref  ) {
     lv_obj_align(setup_btn, alarm_main_tile, LV_ALIGN_IN_BOTTOM_RIGHT, -10, -10 );
     lv_obj_set_event_cb( setup_btn, enter_alarm_setup_event_cb );
 
-    // uncomment the following block of code to remove the "myapp" label in background
+    // uncomment the following block of code to remove the "alarm" label in background
     lv_style_set_text_opa( &alarm_main_style, LV_OBJ_PART_MAIN, LV_OPA_70);
     lv_style_set_text_font( &alarm_main_style, LV_STATE_DEFAULT, &Ubuntu_72px);
     lv_obj_t *app_label = lv_label_create( alarm_main_tile, NULL);
-    lv_label_set_text( app_label, "myapp");
+    lv_label_set_text( app_label, "alarm");
     lv_obj_reset_style_list( app_label, LV_OBJ_PART_MAIN );
     lv_obj_add_style( app_label, LV_OBJ_PART_MAIN, &alarm_main_style );
     lv_obj_align( app_label, NULL, LV_ALIGN_CENTER, 0, 0);
@@ -129,21 +133,27 @@ static void exit_alarm_main_event_cb( lv_obj_t * obj, lv_event_t event ) {
 }
 
 void alarm_task( lv_task_t * task ) {
+    // log_i("Checking alarm");
     // if an alarm has triggered
     if (rtcIrq) {
-        rtcIrq = 0;
+        log_i("Sounding alarm");
+        
         detachInterrupt(RTC_INT);
+        TTGOClass *ttgo = TTGOClass::getWatch();
         ttgo->rtc->resetAlarm();
 
         // Display message
         ttgo->tft->fillScreen(TFT_WHITE);
         ttgo->tft->setTextColor(TFT_BLACK, TFT_WHITE);
-        ttgo->tft->drawString("Good Morning", 60, 118, 4);
+        ttgo->tft->drawString("Alarm", 60, 118, 4);
 
         // Vibrate until screen is touched
-        if (digitalRead(TP_INT) == LOW) {
+        if (ttgo->touch->touched() == false) {
             ttgo->motor->onec();
-            delay(200);
+            delay(2000);
+        }
+        else {
+            rtcIrq = 0;
         }
 
         //@todo Re-set alarm for next time

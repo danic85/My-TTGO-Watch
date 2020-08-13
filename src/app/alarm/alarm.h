@@ -26,7 +26,7 @@
 
 //    #define EXAMPLE_WIDGET    // uncomment if an widget need
 
-    void alarm_setup( void );
+    void alarm_setup( TTGOClass *ttgo );
     void alarm_hide_app_icon_info( bool show );
     void alarm_hide_widget_icon_info( bool show );
     uint32_t alarm_get_app_setup_tile_num( void );

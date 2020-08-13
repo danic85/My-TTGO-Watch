@@ -58,7 +58,7 @@ void alarm_setup(TTGOClass *ttgo) {
     alarm_setup_tile_num = alarm_main_tile_num + 1;
 
     // create an app icon, label it and get the lv_obj_t icon container
-    alarm_icon_cont = app_tile_register_app( "myapp");
+    alarm_icon_cont = app_tile_register_app( "alarm");
     // set your own icon and register her callback to activate by an click
     // remember, an app icon must have an size of 64x64 pixel with an alpha channel
     // use https://lvgl.io/tools/imageconverter to convert your images and set "true color with alpha" to get fancy images
@@ -104,7 +104,7 @@ void alarm_setup(TTGOClass *ttgo) {
 
     // label your widget
     alarm_widget_label = lv_label_create( alarm_widget_cont , NULL);
-    lv_label_set_text( alarm_widget_label, "myapp");
+    lv_label_set_text( alarm_widget_label, "alarm");
     lv_obj_reset_style_list( alarm_widget_label, LV_OBJ_PART_MAIN );
     lv_obj_align( alarm_widget_label, alarm_widget_cont, LV_ALIGN_IN_BOTTOM_MID, 0, 0);
 #endif // EXAMPLE_WIDGET
