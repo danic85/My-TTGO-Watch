@@ -33,6 +33,7 @@
 #include "gui/mainbar/setup_tile/setup.h"
 #include "gui/statusbar.h"
 #include "hardware/display.h"
+#include "hardware/powermgm.h"
 
 EventGroupHandle_t update_event_handle = NULL;
 TaskHandle_t _update_Task;
@@ -73,6 +74,7 @@ void update_tile_setup( void ) {
     // register an setup icon an set an callback
     update_setup_icon_cont = setup_tile_register_setup();
     lv_obj_t *update_setup = lv_imgbtn_create ( update_setup_icon_cont, NULL);
+    mainbar_add_slide_element(update_setup);
     lv_imgbtn_set_src( update_setup, LV_BTN_STATE_RELEASED, &update_64px);
     lv_imgbtn_set_src( update_setup, LV_BTN_STATE_PRESSED, &update_64px);
     lv_imgbtn_set_src( update_setup, LV_BTN_STATE_CHECKED_RELEASED, &update_64px);
@@ -189,7 +191,7 @@ void update_check_version( void ) {
         xEventGroupSetBits( update_event_handle, UPDATE_GET_VERSION_REQUEST );
         xTaskCreate(    update_Task,        /* Function to implement the task */
                         "update Task",      /* Name of the task */
-                        2000,               /* Stack size in words */
+                        5000,               /* Stack size in words */
                         NULL,               /* Task input parameter */
                         1,                  /* Priority of the task */
                         &_update_Task );    /* Task handle. */
@@ -224,7 +226,9 @@ void update_Task( void * pvParameters ) {
             WiFiClient client;
 
             lv_label_set_text( update_status_label, "start update ..." );
-            lv_obj_align( update_status_label, update_btn, LV_ALIGN_OUT_BOTTOM_MID, 0, 15 );  
+            lv_obj_align( update_status_label, update_btn, LV_ALIGN_OUT_BOTTOM_MID, 0, 15 );
+
+            httpUpdate.rebootOnUpdate( false );
 
             t_httpUpdate_return ret = httpUpdate.update( client, "http://www.neo-guerillaz.de/ttgo-t-watch2020_v1.ino.bin" );
 
@@ -240,7 +244,7 @@ void update_Task( void * pvParameters ) {
                     break;
 
                 case HTTP_UPDATE_OK:
-                    lv_label_set_text( update_status_label, "update ok" );
+                    lv_label_set_text( update_status_label, "update ok, turn off and on!" );
                     lv_obj_align( update_status_label, update_btn, LV_ALIGN_OUT_BOTTOM_MID, 0, 15 );  
                     break;
             }

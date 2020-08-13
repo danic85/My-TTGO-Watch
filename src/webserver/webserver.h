@@ -24,11 +24,16 @@
 
     #define _ASYNCWEBSERVER_H
 
-    #define WEBSERVERPORT 80
+    #define WEBSERVERPORT   80
+    #define UPNPPORT        80
+
+    #define DEV_NAME        "My-Watch" 
+    #define DEV_INFO        "Watch based on ESP32 from Espressif Systems"
 
     /*
      *  @brief setup builtin webserver, call after first wifi-connection. otherwise esp32 will crash
      */
-    void asyncwebserver_setup(void);
+    void asyncwebserver_start(void);
+    void asyncwebserver_end(void);
 
 #endif // _ASYNCWEBSERVER_H

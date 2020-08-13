@@ -28,6 +28,7 @@
 #include "note_tile/note_tile.h"
 #include "app_tile/app_tile.h"
 #include "gui/keyboard.h"
+#include "gui/statusbar.h"
 
 #include "setup_tile/battery_settings/battery_settings.h"
 #include "setup_tile/wlan_settings/wlan_settings.h"
@@ -44,6 +45,7 @@ static lv_obj_t *mainbar = NULL;
 
 static lv_tile_t *tile = NULL;
 static lv_point_t *tile_pos_table = NULL;
+static uint32_t current_tile = 0;
 static uint32_t tile_entrys = 0;
 static uint32_t app_tile_pos = MAINBAR_APP_TILE_X_START;
 
@@ -74,12 +76,12 @@ uint32_t mainbar_add_tile( uint16_t x, uint16_t y ) {
     tile_entrys++;
 
     if ( tile_pos_table == NULL ) {
-        tile_pos_table = ( lv_point_t * )malloc( sizeof( lv_point_t ) * tile_entrys );
+        tile_pos_table = ( lv_point_t * )ps_malloc( sizeof( lv_point_t ) * tile_entrys );
         if ( tile_pos_table == NULL ) {
             log_e("tile_pos_table malloc faild");
             while(true);
         }
-        tile = ( lv_tile_t * )malloc( sizeof( lv_tile_t ) * tile_entrys );
+        tile = ( lv_tile_t * )ps_malloc( sizeof( lv_tile_t ) * tile_entrys );
         if ( tile == NULL ) {
             log_e("tile malloc faild");
             while(true);
@@ -89,14 +91,14 @@ uint32_t mainbar_add_tile( uint16_t x, uint16_t y ) {
         lv_point_t *new_tile_pos_table;
         lv_tile_t *new_tile;
 
-        new_tile_pos_table = ( lv_point_t * )realloc( tile_pos_table, sizeof( lv_point_t ) * tile_entrys );
+        new_tile_pos_table = ( lv_point_t * )ps_realloc( tile_pos_table, sizeof( lv_point_t ) * tile_entrys );
         if ( new_tile_pos_table == NULL ) {
             log_e("tile_pos_table realloc faild");
             while(true);
         }
         tile_pos_table = new_tile_pos_table;
         
-        new_tile = ( lv_tile_t * )realloc( tile, sizeof( lv_tile_t ) * tile_entrys );
+        new_tile = ( lv_tile_t * )ps_realloc( tile, sizeof( lv_tile_t ) * tile_entrys );
         if ( new_tile == NULL ) {
             log_e("tile realloc faild");
             while(true);
@@ -107,10 +109,12 @@ uint32_t mainbar_add_tile( uint16_t x, uint16_t y ) {
     tile_pos_table[ tile_entrys - 1 ].x = x;
     tile_pos_table[ tile_entrys - 1 ].y = y;
 
-    lv_obj_t *my_tile = lv_obj_create( mainbar, NULL);  
+    lv_obj_t *my_tile = lv_cont_create( mainbar, NULL);  
     tile[ tile_entrys - 1 ].tile = my_tile;
+    tile[ tile_entrys - 1 ].activate_cb = NULL;
+    tile[ tile_entrys - 1 ].hibernate_cb = NULL;
     lv_obj_set_size( tile[ tile_entrys - 1 ].tile, LV_HOR_RES, LV_VER_RES);
-    lv_obj_reset_style_list( tile[ tile_entrys - 1 ].tile, LV_OBJ_PART_MAIN );
+    //lv_obj_reset_style_list( tile[ tile_entrys - 1 ].tile, LV_OBJ_PART_MAIN );
     lv_obj_add_style( tile[ tile_entrys - 1 ].tile, LV_OBJ_PART_MAIN, &mainbar_style );
     lv_obj_set_pos( tile[ tile_entrys - 1 ].tile, tile_pos_table[ tile_entrys - 1 ].x * LV_HOR_RES , tile_pos_table[ tile_entrys - 1 ].y * LV_VER_RES );
     lv_tileview_add_element( mainbar, tile[ tile_entrys - 1 ].tile );
@@ -130,6 +134,28 @@ lv_style_t *mainbar_get_switch_style( void ) {
 
 lv_style_t *mainbar_get_slider_style( void ) {
     return( &mainbar_slider_style );
+}
+
+bool mainbar_add_tile_hibernate_cb( uint32_t tile_number, MAINBAR_CALLBACK_FUNC hibernate_cb ) {
+    if ( tile_number < tile_entrys ) {
+        tile[ tile_number ].hibernate_cb = hibernate_cb;
+        return( true );
+    }
+    else {
+        log_e("tile number %d do not exist", tile_number );
+        return( false );
+    }
+}
+
+bool mainbar_add_tile_activate_cb( uint32_t tile_number, MAINBAR_CALLBACK_FUNC activate_cb ) {
+    if ( tile_number < tile_entrys ) {
+        tile[ tile_number ].activate_cb = activate_cb;
+        return( true );
+    }
+    else {
+        log_e("tile number %d do not exist", tile_number );
+        return( false );
+    }
 }
 
 uint32_t mainbar_add_app_tile( uint16_t x, uint16_t y ) {
@@ -160,8 +186,9 @@ lv_obj_t *mainbar_get_tile_obj( uint32_t tile_number ) {
 }
 
 void mainbar_jump_to_maintile( lv_anim_enable_t anim ) {
+    statusbar_hide( false );
     if ( tile_entrys != 0 ) {
-        lv_tileview_set_tile_act( mainbar, 0, 0, anim );
+        mainbar_jump_to_tilenumber( 0, anim );
     }
     else {
         log_e( "main tile do not exist" );
@@ -170,9 +197,34 @@ void mainbar_jump_to_maintile( lv_anim_enable_t anim ) {
 
 void mainbar_jump_to_tilenumber( uint32_t tile_number, lv_anim_enable_t anim ) {
     if ( tile_number < tile_entrys ) {
+        log_i("jump to tile %d from tile %d", tile_number, current_tile );
         lv_tileview_set_tile_act( mainbar, tile_pos_table[ tile_number ].x, tile_pos_table[ tile_number ].y, anim );
+        // call hibernate callback for the current tile if exist
+        if ( tile[ current_tile ].hibernate_cb != NULL ) {
+            log_i("call hibernate cb for tile: %d", current_tile );
+            tile[ current_tile ].hibernate_cb();
+        }
+        // call activate callback for the new tile if exist
+        if ( tile[ tile_number ].activate_cb != NULL ) { 
+            log_i("call activate cb for tile: %d", tile_number );
+            tile[ tile_number ].activate_cb();
+        }
+        current_tile = tile_number;
     }
     else {
         log_e( "tile number %d do not exist", tile_number );
     }
+}
+
+lv_obj_t * mainbar_obj_create(lv_obj_t *parent)
+{
+    lv_obj_t * child = lv_obj_create( parent, NULL );
+    lv_tileview_add_element( mainbar, child );
+
+    return child;
+}
+
+void mainbar_add_slide_element(lv_obj_t *element)
+{
+    lv_tileview_add_element( mainbar, element );
 }
