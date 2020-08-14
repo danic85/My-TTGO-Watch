@@ -44,6 +44,7 @@ static void enter_alarm_setup_event_cb( lv_obj_t * obj, lv_event_t event );
 void alarm_task( lv_task_t * task );
 
 bool rtcIrq = false;
+int alarmMax = 10;
 
 void alarm_main_setup( uint32_t tile_num, TTGOClass *ttgo  ) {
 
@@ -67,8 +68,10 @@ void alarm_main_setup( uint32_t tile_num, TTGOClass *ttgo  ) {
 
     ttgo->rtc->setDateTime(2019, 8, 12, 0, 0, 0);
 
-    ttgo->rtc->setAlarmByMinutes(2); // or setAlarm() https://playground.arduino.cc/Main/RTC-PCF8563/
+    ttgo->rtc->setAlarmByMinutes(1); // or setAlarm() https://playground.arduino.cc/Main/RTC-PCF8563/
     //ttgo->rtc->setAlarmByMinutes(1); // For testing
+
+    
 
     log_i("Setting alarm");
 
@@ -148,12 +151,14 @@ void alarm_task( lv_task_t * task ) {
         ttgo->tft->drawString("Alarm", 60, 118, 4);
 
         // Vibrate until screen is touched
-        if (ttgo->touch->touched() == false) {
+        if (ttgo->touch->touched() == false && alarmMax > 0) {
             ttgo->motor->onec();
             delay(2000);
+            alarmMax--;
         }
         else {
             rtcIrq = 0;
+            alarmMax = 10;
         }
 
         //@todo Re-set alarm for next time
